@@ -1,0 +1,30 @@
+# FastAPI và Server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Groq API for Translation
+groq>=0.4.0
+
+# Transformers và PyTorch (cho Whisper ASR)
+torch>=2.0.0
+transformers>=4.35.0
+accelerate>=0.24.0
+
+# Sherpa-ONNX (cho Zipformer Vietnamese ASR)
+sherpa-onnx>=1.10.0
+huggingface-hub>=0.20.0
+
+# Audio processing
+numpy>=1.24.0
+scipy>=1.11.0
+librosa>=0.10.0
+soundfile>=0.12.0
+
+# VITS TTS dependencies (từ HmongTTS/requirements.txt)
+Cython>=3.0.0
+phonemizer>=3.2.0
+unidecode>=1.3.0
+
+# Utilities
+pydantic>=2.0.0
