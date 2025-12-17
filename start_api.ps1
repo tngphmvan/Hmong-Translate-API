@@ -1,0 +1,57 @@
+# Script khởi động nhanh API
+# Sử dụng: .\start_api.ps1
+
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "  Hmong-Vietnamese Translation API" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host ""
+
+# Kiểm tra virtual environment
+if (-not (Test-Path "venv\Scripts\Activate.ps1")) {
+    Write-Host "⚠️  Virtual environment chưa được tạo!" -ForegroundColor Yellow
+    Write-Host "Đang tạo virtual environment..." -ForegroundColor Yellow
+    python -m venv venv
+}
+
+# Kích hoạt virtual environment
+Write-Host "🔧 Kích hoạt virtual environment..." -ForegroundColor Green
+& ".\venv\Scripts\Activate.ps1"
+
+# Kiểm tra dependencies
+Write-Host "📦 Kiểm tra dependencies..." -ForegroundColor Green
+$requirementsInstalled = $true
+
+try {
+    python -c "import fastapi" 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        $requirementsInstalled = $false
+    }
+} catch {
+    $requirementsInstalled = $false
+}
+
+if (-not $requirementsInstalled) {
+    Write-Host "⚠️  Dependencies chưa được cài đặt!" -ForegroundColor Yellow
+    Write-Host "Đang cài đặt dependencies..." -ForegroundColor Yellow
+    pip install -r requirements.txt
+}
+
+# Kiểm tra monotonic_align đã build chưa
+$monotonicBuildPath = "HmongTTS\monotonic_align\build"
+if (-not (Test-Path $monotonicBuildPath)) {
+    Write-Host "🔨 Build monotonic_align..." -ForegroundColor Green
+    Push-Location "HmongTTS\monotonic_align"
+    python setup.py build_ext --inplace
+    Pop-Location
+}
+
+# Khởi động API
+Write-Host ""
+Write-Host "🚀 Khởi động API server..." -ForegroundColor Green
+Write-Host "   URL: http://localhost:8000" -ForegroundColor Cyan
+Write-Host "   Docs: http://localhost:8000/docs" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Nhấn Ctrl+C để dừng server" -ForegroundColor Yellow
+Write-Host ""
+
+python api.py
