@@ -27,6 +27,8 @@ import wave
 import soundfile as sf
 from huggingface_hub import hf_hub_download
 from dotenv import load_dotenv
+import re
+import unicodedata
 load_dotenv()
 # Groq API for Translation
 
@@ -62,6 +64,36 @@ def translate_with_groq(text: str, source_lang: str, target_lang: str) -> str:
     )
 
     return completion.choices[0].message.content.strip()
+
+
+def clean_hmong_text(text: str) -> str:
+    """Làm sạch text Hmong - loại bỏ dấu tiếng Việt và ký tự không hỗ trợ"""
+    # Loại bỏ dấu tiếng Việt (NFD decompose)
+    text = ''.join(
+        c for c in unicodedata.normalize('NFD', text)
+        if unicodedata.category(c) != 'Mn'
+    )
+
+    # Thay thế các ký tự đặc biệt thành chữ cái
+    replacements = {
+        'ă': 'a', 'â': 'a', 'á': 'a', 'à': 'a', 'ả': 'a', 'ã': 'a', 'ạ': 'a',
+        'ê': 'e', 'é': 'e', 'è': 'e', 'ẻ': 'e', 'ẽ': 'e', 'ẹ': 'e',
+        'ô': 'o', 'ơ': 'o', 'ó': 'o', 'ò': 'o', 'ỏ': 'o', 'õ': 'o', 'ọ': 'o',
+        'ư': 'u', 'ú': 'u', 'ù': 'u', 'ủ': 'u', 'ũ': 'u', 'ụ': 'u',
+        'ỳ': 'y', 'ý': 'y', 'ỷ': 'y', 'ỹ': 'y', 'ỵ': 'y',
+        'đ': 'd'
+    }
+
+    for old, new in replacements.items():
+        text = text.replace(old, new).replace(old.upper(), new.upper())
+
+    # Chỉ giữ lại chữ cái, số, khoảng trắng và một số ký tự cơ bản
+    text = re.sub(r'[^a-zA-Z0-9\s\-.,!?]', '', text)
+
+    # Loại bỏ khoảng trắng dư thừa
+    text = ' '.join(text.split())
+
+    return text.strip()
 
 # Import cho Whisper (ASR - Mông sang Text)
 
@@ -166,7 +198,7 @@ print("✅ Zipformer Vietnamese ASR đã sẵn sàng!")
 # 4. VITS TTS (Hmong Text -> Speech)
 TTS_CONFIG_PATH = "HmongTTS/hmong.json"
 TTS_MODEL_PATH = "HmongTTS/G_60000.pth"
-device_tts = "cpu"  # TTS thường chạy tốt trên CPU
+device_tts = "cuda"  # TTS thường chạy tốt trên CPU
 
 print(f"🔊 Đang tải VITS TTS model (device: {device_tts})...")
 hps = utils.get_hparams_from_file(TTS_CONFIG_PATH)
@@ -328,7 +360,12 @@ async def vietnamese_to_hmong(audio: UploadFile = File(...)):
 
             # Bước 3: TTS - Tạo audio tiếng Mông
             print("🔊 Đang tạo audio tiếng Mông...")
-            stn_tst = get_text(hmong_text, hps)
+
+            # Làm sạch text trước khi TTS
+            hmong_text_clean = clean_hmong_text(hmong_text)
+            print(f"📝 Text làm sạch: {hmong_text_clean}")
+
+            stn_tst = get_text(hmong_text_clean, hps)
             with torch.no_grad():
                 x_tts = stn_tst.unsqueeze(0).to(device_tts)
                 x_tts_lengths = torch.LongTensor(
