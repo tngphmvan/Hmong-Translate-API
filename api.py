@@ -203,6 +203,16 @@ class TranslationResponse(BaseModel):
     success: bool
     message: Optional[str] = None
 
+
+class VietnameseToHmongResponse(BaseModel):
+    vietnamese_text: str  # ASR result
+    hmong_text: str  # Translation result
+    audio_base64: str
+    audio_format: str
+    sample_rate: int
+    success: bool
+    message: Optional[str] = None
+
 # ==================== API 1: MÔNG -> VIỆT ====================
 
 
@@ -262,6 +272,7 @@ async def hmong_to_vietnamese(audio: UploadFile = File(...)):
 
 
 @app.post("/api/vietnamese-to-hmong",
+          response_model=VietnameseToHmongResponse,
           summary="Dịch từ tiếng Việt sang tiếng Mông",
           description="Nhận file âm thanh tiếng Việt, chuyển thành text, dịch sang tiếng Mông và tạo audio")
 async def vietnamese_to_hmong(audio: UploadFile = File(...)):
@@ -337,15 +348,15 @@ async def vietnamese_to_hmong(audio: UploadFile = File(...)):
             audio_buffer.seek(0)
             audio_base64 = base64.b64encode(audio_buffer.read()).decode()
 
-            return {
-                "vietnamese_text": vietnamese_text,
-                "hmong_text": hmong_text,
-                "audio_base64": audio_base64,
-                "audio_format": "wav",
-                "sample_rate": hps.data.sampling_rate,
-                "success": True,
-                "message": "Dịch và tạo audio thành công"
-            }
+            return VietnameseToHmongResponse(
+                vietnamese_text=vietnamese_text,
+                hmong_text=hmong_text,
+                audio_base64=audio_base64,
+                audio_format="wav",
+                sample_rate=hps.data.sampling_rate,
+                success=True,
+                message="Dịch và tạo audio thành công"
+            )
 
         finally:
             # Xóa file tạm
