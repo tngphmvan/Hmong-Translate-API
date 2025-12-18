@@ -1,0 +1,7 @@
+torch
+numpy
+scipy
+gradio
+unidecode
+Cython
+phonemizer
