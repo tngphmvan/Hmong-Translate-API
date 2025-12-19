@@ -1,5 +1,16 @@
 import torch
 from transformers import pipeline, AutoModelForSpeechSeq2Seq, AutoProcessor
+"""
+Mô tả:
+-------
+Script này thực hiện Automatic Speech Recognition (ASR) cho tiếng Hmong
+bằng mô hình Whisper Large đã fine-tune trên Hugging Face.
+
+Mô hình và processor được tải thủ công từ một subfolder trong repository
+để tránh lỗi thiếu file trọng số. Pipeline ASR của Transformers được sử dụng
+để xử lý file audio, có hỗ trợ chunking cho các file âm thanh dài và tăng tốc
+suy luận khi chạy trên GPU.
+"""
 
 # Cấu hình đường dẫn
 repo_id = "Pakorn2112/whisper-model-large-hmong"
