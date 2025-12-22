@@ -1,17 +1,17 @@
 import torch
 from transformers import pipeline, AutoModelForSpeechSeq2Seq, AutoProcessor
 
-# Cấu hình đường dẫn
+# Configure paths
 repo_id = "Pakorn2112/whisper-model-large-hmong"
 subfolder_name = "SingleSpeech"
 audio_file = "/kaggle/input/hmong-sample/download (1).wav"
 
-# Kiểm tra GPU (Chạy Whisper Large trên CPU rất chậm, nên dùng GPU)
+# Check GPU 
 device = "cuda:1" if torch.cuda.is_available() else "cpu"
 print(f"Đang sử dụng thiết bị: {device}")
 
-# 1. Tải Model và Processor thủ công từ subfolder
-# Bước này giúp tránh lỗi không tìm thấy file trọng số (bin/safetensors)
+# 1. Manually load the model and processor from the subfolder
+# This step helps avoid errors where weight files (bin/safetensors) are not found
 print("Đang tải model...")
 model = AutoModelForSpeechSeq2Seq.from_pretrained(
     repo_id,
@@ -23,19 +23,19 @@ model.to(device)
 
 processor = AutoProcessor.from_pretrained(repo_id, subfolder=subfolder_name)
 
-# 2. Khởi tạo pipeline với object model đã tải
+# 2. Initialize the pipeline using the preloaded model
 transcriber = pipeline(
     "automatic-speech-recognition",
     model=model,
     tokenizer=processor.tokenizer,
     feature_extractor=processor.feature_extractor,
-    chunk_length_s=30,  # Quan trọng cho Whisper để xử lý file dài
+    chunk_length_s=30,  # Important for Whisper to handle long audio files
     device=device,
 )
 
-# 3. Chạy nhận dạng
+# 3. Run speech recognition
 print("Đang xử lý file âm thanh...")
-# batch_size=8 giúp chạy nhanh hơn nếu có GPU
+# batch_size=8 helps speed up inference if a GPU is available
 result = transcriber(audio_file, batch_size=8)
 
 print("--- KẾT QUẢ ---")
