@@ -1,3 +1,20 @@
+"""Attention mechanisms and Transformer components for VITS Text-to-Speech model.
+
+This module implements multi-head attention mechanisms and feed-forward networks
+used in the Transformer architecture for the VITS TTS system. It includes:
+
+- Encoder: Transformer encoder with self-attention and FFN layers
+- Decoder: Transformer decoder with self-attention, cross-attention and FFN layers  
+- MultiHeadAttention: Multi-head attention with optional relative positional encoding
+- FFN: Position-wise feed-forward network with optional causal masking
+
+The attention implementation supports:
+- Relative positional embeddings for better sequence modeling
+- Proximal bias for encouraging attention to nearby positions
+- Block-sparse attention patterns
+- Causal masking for autoregressive generation
+"""
+
 import copy
 import math
 import numpy as np
@@ -11,7 +28,35 @@ from .modules import LayerNorm
 
 
 class Encoder(nn.Module):
+    """Transformer Encoder module for sequence encoding.
+    
+    A stack of self-attention layers followed by feed-forward networks,
+    with residual connections and layer normalization. Used for encoding
+    input sequences in the VITS model.
+    
+    Attributes:
+        hidden_channels (int): Number of hidden channels.
+        filter_channels (int): Number of filter channels in FFN.
+        n_heads (int): Number of attention heads.
+        n_layers (int): Number of encoder layers.
+        kernel_size (int): Kernel size for FFN convolutions.
+        p_dropout (float): Dropout probability.
+        window_size (int): Window size for relative attention.
+    """
+    
     def __init__(self, hidden_channels, filter_channels, n_heads, n_layers, kernel_size=1, p_dropout=0., window_size=4, **kwargs):
+        """Initialize the Encoder.
+        
+        Args:
+            hidden_channels (int): Number of hidden channels.
+            filter_channels (int): Number of filter channels in FFN.
+            n_heads (int): Number of attention heads.
+            n_layers (int): Number of encoder layers.
+            kernel_size (int, optional): Kernel size for FFN. Defaults to 1.
+            p_dropout (float, optional): Dropout probability. Defaults to 0.
+            window_size (int, optional): Window size for relative attention. Defaults to 4.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__()
         self.hidden_channels = hidden_channels
         self.filter_channels = filter_channels
@@ -35,6 +80,15 @@ class Encoder(nn.Module):
             self.norm_layers_2.append(LayerNorm(hidden_channels))
 
     def forward(self, x, x_mask):
+        """Forward pass through the encoder.
+        
+        Args:
+            x (torch.Tensor): Input tensor of shape [batch, channels, time].
+            x_mask (torch.Tensor): Mask tensor of shape [batch, 1, time].
+            
+        Returns:
+            torch.Tensor: Encoded output of shape [batch, channels, time].
+        """
         attn_mask = x_mask.unsqueeze(2) * x_mask.unsqueeze(-1)
         x = x * x_mask
         for i in range(self.n_layers):
@@ -50,7 +104,37 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
+    """Transformer Decoder module for autoregressive generation.
+    
+    A stack of self-attention, cross-attention and feed-forward layers
+    with residual connections and layer normalization. Used for decoding
+    in the VITS model with causal masking for autoregressive generation.
+    
+    Attributes:
+        hidden_channels (int): Number of hidden channels.
+        filter_channels (int): Number of filter channels in FFN.
+        n_heads (int): Number of attention heads.
+        n_layers (int): Number of decoder layers.
+        kernel_size (int): Kernel size for FFN convolutions.
+        p_dropout (float): Dropout probability.
+        proximal_bias (bool): Whether to use proximal bias in attention.
+        proximal_init (bool): Whether to initialize K weights from Q weights.
+    """
+    
     def __init__(self, hidden_channels, filter_channels, n_heads, n_layers, kernel_size=1, p_dropout=0., proximal_bias=False, proximal_init=True, **kwargs):
+        """Initialize the Decoder.
+        
+        Args:
+            hidden_channels (int): Number of hidden channels.
+            filter_channels (int): Number of filter channels in FFN.
+            n_heads (int): Number of attention heads.
+            n_layers (int): Number of decoder layers.
+            kernel_size (int, optional): Kernel size for FFN. Defaults to 1.
+            p_dropout (float, optional): Dropout probability. Defaults to 0.
+            proximal_bias (bool, optional): Use proximal bias. Defaults to False.
+            proximal_init (bool, optional): Initialize K from Q. Defaults to True.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__()
         self.hidden_channels = hidden_channels
         self.filter_channels = filter_channels
@@ -105,7 +189,40 @@ class Decoder(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
+    """Multi-Head Attention mechanism with optional relative positional encoding.
+    
+    Implements scaled dot-product attention with multiple heads. Supports:
+    - Relative positional embeddings for self-attention
+    - Proximal bias to encourage attention to nearby positions
+    - Block-sparse attention patterns
+    
+    Attributes:
+        channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+        n_heads (int): Number of attention heads.
+        p_dropout (float): Dropout probability.
+        window_size (int or None): Window size for relative attention.
+        heads_share (bool): Whether heads share relative embeddings.
+        block_length (int or None): Block length for sparse attention.
+        proximal_bias (bool): Whether to use proximal attention bias.
+        proximal_init (bool): Whether to initialize K weights from Q.
+        attn (torch.Tensor or None): Stored attention weights from last forward pass.
+    """
+    
     def __init__(self, channels, out_channels, n_heads, p_dropout=0., window_size=None, heads_share=True, block_length=None, proximal_bias=False, proximal_init=False):
+        """Initialize MultiHeadAttention.
+        
+        Args:
+            channels (int): Number of input channels (must be divisible by n_heads).
+            out_channels (int): Number of output channels.
+            n_heads (int): Number of attention heads.
+            p_dropout (float, optional): Dropout probability. Defaults to 0.
+            window_size (int, optional): Window size for relative attention. Defaults to None.
+            heads_share (bool, optional): Share relative embeddings across heads. Defaults to True.
+            block_length (int, optional): Block length for sparse attention. Defaults to None.
+            proximal_bias (bool, optional): Use proximal attention bias. Defaults to False.
+            proximal_init (bool, optional): Initialize K from Q weights. Defaults to False.
+        """
         super().__init__()
         assert channels % n_heads == 0
 
@@ -144,6 +261,16 @@ class MultiHeadAttention(nn.Module):
                 self.conv_k.bias.copy_(self.conv_q.bias)
 
     def forward(self, x, c, attn_mask=None):
+        """Forward pass of multi-head attention.
+        
+        Args:
+            x (torch.Tensor): Query tensor of shape [batch, channels, time_q].
+            c (torch.Tensor): Key/Value tensor of shape [batch, channels, time_kv].
+            attn_mask (torch.Tensor, optional): Attention mask. Defaults to None.
+            
+        Returns:
+            torch.Tensor: Output tensor of shape [batch, out_channels, time_q].
+        """
         q = self.conv_q(x)
         k = self.conv_k(c)
         v = self.conv_v(c)
@@ -154,6 +281,19 @@ class MultiHeadAttention(nn.Module):
         return x
 
     def attention(self, query, key, value, mask=None):
+        """Compute scaled dot-product attention with optional relative positional encoding.
+        
+        Args:
+            query (torch.Tensor): Query tensor of shape [batch, channels, time_q].
+            key (torch.Tensor): Key tensor of shape [batch, channels, time_k].
+            value (torch.Tensor): Value tensor of shape [batch, channels, time_v].
+            mask (torch.Tensor, optional): Attention mask. Defaults to None.
+            
+        Returns:
+            tuple: (output, attention_weights)
+                - output: Tensor of shape [batch, channels, time_q]
+                - attention_weights: Tensor of shape [batch, n_heads, time_q, time_k]
+        """
         # reshape [b, d, t] -> [b, n_h, t, d_k]
         b, d, t_s, t_t = (*key.size(), query.size(2))
         query = query.view(b, self.n_heads, self.k_channels,
@@ -219,6 +359,17 @@ class MultiHeadAttention(nn.Module):
         return ret
 
     def _get_relative_embeddings(self, relative_embeddings, length):
+        """Extract relative embeddings for given sequence length.
+        
+        Pads and slices relative embeddings to match the required sequence length.
+        
+        Args:
+            relative_embeddings (torch.Tensor): Relative position embeddings.
+            length (int): Target sequence length.
+            
+        Returns:
+            torch.Tensor: Sliced relative embeddings for the given length.
+        """
         max_relative_position = 2 * self.window_size + 1
         # Pad first before slice to avoid using cond ops.
         pad_length = max(length - (self.window_size + 1), 0)
@@ -283,7 +434,33 @@ class MultiHeadAttention(nn.Module):
 
 
 class FFN(nn.Module):
+    """Position-wise Feed-Forward Network.
+    
+    Two-layer 1D convolutional network with optional causal padding.
+    Used as the feed-forward component in Transformer blocks.
+    
+    Attributes:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+        filter_channels (int): Number of hidden channels.
+        kernel_size (int): Convolution kernel size.
+        p_dropout (float): Dropout probability.
+        activation (str or None): Activation function ('gelu' or ReLU).
+        causal (bool): Whether to use causal padding.
+    """
+    
     def __init__(self, in_channels, out_channels, filter_channels, kernel_size, p_dropout=0., activation=None, causal=False):
+        """Initialize the Feed-Forward Network.
+        
+        Args:
+            in_channels (int): Number of input channels.
+            out_channels (int): Number of output channels.
+            filter_channels (int): Number of hidden channels.
+            kernel_size (int): Convolution kernel size.
+            p_dropout (float, optional): Dropout probability. Defaults to 0.
+            activation (str, optional): Activation function. Defaults to None (ReLU).
+            causal (bool, optional): Use causal padding. Defaults to False.
+        """
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -303,6 +480,15 @@ class FFN(nn.Module):
         self.drop = nn.Dropout(p_dropout)
 
     def forward(self, x, x_mask):
+        """Forward pass of the FFN.
+        
+        Args:
+            x (torch.Tensor): Input tensor of shape [batch, channels, time].
+            x_mask (torch.Tensor): Mask tensor of shape [batch, 1, time].
+            
+        Returns:
+            torch.Tensor: Output tensor of shape [batch, out_channels, time].
+        """
         x = self.conv_1(self.padding(x * x_mask))
         if self.activation == "gelu":
             x = x * torch.sigmoid(1.702 * x)
@@ -313,6 +499,14 @@ class FFN(nn.Module):
         return x * x_mask
 
     def _causal_padding(self, x):
+        """Apply causal (left) padding for autoregressive generation.
+        
+        Args:
+            x (torch.Tensor): Input tensor of shape [batch, channels, time].
+            
+        Returns:
+            torch.Tensor: Padded tensor.
+        """
         if self.kernel_size == 1:
             return x
         pad_l = self.kernel_size - 1
@@ -322,6 +516,14 @@ class FFN(nn.Module):
         return x
 
     def _same_padding(self, x):
+        """Apply symmetric (same) padding to maintain sequence length.
+        
+        Args:
+            x (torch.Tensor): Input tensor of shape [batch, channels, time].
+            
+        Returns:
+            torch.Tensor: Padded tensor.
+        """
         if self.kernel_size == 1:
             return x
         pad_l = (self.kernel_size - 1) // 2

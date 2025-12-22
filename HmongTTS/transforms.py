@@ -1,9 +1,31 @@
+"""Normalizing Flow Transforms for VITS Text-to-Speech.
+
+This module implements piecewise rational quadratic spline transforms used in
+normalizing flows for the VITS model. These transforms provide flexible and
+invertible mappings with tractable Jacobian determinants.
+
+The rational quadratic spline is a monotonic piecewise function defined by
+bin widths, heights, and derivatives at the knot points. It supports both
+forward and inverse transformations.
+
+Key functions:
+    - piecewise_rational_quadratic_transform: Main entry point for spline transforms
+    - unconstrained_rational_quadratic_spline: Spline with linear tails
+    - rational_quadratic_spline: Core spline implementation
+    - searchsorted: Binary search for bin indices
+
+References:
+    Neural Spline Flows (Durkan et al., 2019)
+    https://arxiv.org/abs/1906.04032
+"""
+
 import torch
 from torch.nn import functional as F
 
 import numpy as np
 
 
+# Default minimum values to ensure numerical stability
 DEFAULT_MIN_BIN_WIDTH = 1e-3
 DEFAULT_MIN_BIN_HEIGHT = 1e-3
 DEFAULT_MIN_DERIVATIVE = 1e-3
@@ -19,7 +41,28 @@ def piecewise_rational_quadratic_transform(inputs,
                                            min_bin_width=DEFAULT_MIN_BIN_WIDTH,
                                            min_bin_height=DEFAULT_MIN_BIN_HEIGHT,
                                            min_derivative=DEFAULT_MIN_DERIVATIVE):
-
+    """Apply piecewise rational quadratic spline transform.
+    
+    Main entry point for spline-based normalizing flow transforms. Dispatches
+    to either constrained or unconstrained spline based on tail configuration.
+    
+    Args:
+        inputs (torch.Tensor): Input tensor to transform.
+        unnormalized_widths (torch.Tensor): Unnormalized bin widths (will be softmaxed).
+        unnormalized_heights (torch.Tensor): Unnormalized bin heights (will be softmaxed).
+        unnormalized_derivatives (torch.Tensor): Unnormalized derivatives at knots.
+        inverse (bool, optional): Whether to compute inverse transform. Defaults to False.
+        tails (str, optional): Tail behavior ('linear' or None). Defaults to None.
+        tail_bound (float, optional): Bound for tail region. Defaults to 1.0.
+        min_bin_width (float, optional): Minimum bin width. Defaults to 1e-3.
+        min_bin_height (float, optional): Minimum bin height. Defaults to 1e-3.
+        min_derivative (float, optional): Minimum derivative value. Defaults to 1e-3.
+        
+    Returns:
+        tuple: (outputs, logabsdet)
+            - outputs: Transformed tensor with same shape as inputs
+            - logabsdet: Log absolute determinant of Jacobian
+    """
     if tails is None:
         spline_fn = rational_quadratic_spline
         spline_kwargs = {}
@@ -45,6 +88,20 @@ def piecewise_rational_quadratic_transform(inputs,
 
 
 def searchsorted(bin_locations, inputs, eps=1e-6):
+    """Find bin indices for inputs using binary search.
+    
+    Finds the index of the bin that each input value falls into.
+    A small epsilon is added to the last bin boundary to ensure
+    values at the boundary are handled correctly.
+    
+    Args:
+        bin_locations (torch.Tensor): Cumulative bin boundaries.
+        inputs (torch.Tensor): Values to find bin indices for.
+        eps (float, optional): Small value to add to last boundary. Defaults to 1e-6.
+        
+    Returns:
+        torch.Tensor: Bin indices for each input value.
+    """
     bin_locations[..., -1] += eps
     return torch.sum(
         inputs[..., None] >= bin_locations,
@@ -62,6 +119,32 @@ def unconstrained_rational_quadratic_spline(inputs,
                                             min_bin_width=DEFAULT_MIN_BIN_WIDTH,
                                             min_bin_height=DEFAULT_MIN_BIN_HEIGHT,
                                             min_derivative=DEFAULT_MIN_DERIVATIVE):
+    """Apply rational quadratic spline with linear tails outside bounds.
+    
+    Handles inputs outside the [-tail_bound, tail_bound] interval with
+    identity mapping (linear tails), while applying the spline transform
+    to inputs inside the interval.
+    
+    Args:
+        inputs (torch.Tensor): Input tensor to transform.
+        unnormalized_widths (torch.Tensor): Unnormalized bin widths.
+        unnormalized_heights (torch.Tensor): Unnormalized bin heights.
+        unnormalized_derivatives (torch.Tensor): Unnormalized derivatives.
+        inverse (bool, optional): Compute inverse transform. Defaults to False.
+        tails (str, optional): Tail type (only 'linear' supported). Defaults to 'linear'.
+        tail_bound (float, optional): Bound for spline region. Defaults to 1.0.
+        min_bin_width (float, optional): Minimum bin width. Defaults to 1e-3.
+        min_bin_height (float, optional): Minimum bin height. Defaults to 1e-3.
+        min_derivative (float, optional): Minimum derivative. Defaults to 1e-3.
+        
+    Returns:
+        tuple: (outputs, logabsdet)
+            - outputs: Transformed tensor
+            - logabsdet: Log absolute Jacobian determinant
+            
+    Raises:
+        RuntimeError: If unsupported tail type is specified.
+    """
     inside_interval_mask = (inputs >= -tail_bound) & (inputs <= tail_bound)
     outside_interval_mask = ~inside_interval_mask
 
@@ -93,6 +176,7 @@ def unconstrained_rational_quadratic_spline(inputs,
 
     return outputs, logabsdet
 
+
 def rational_quadratic_spline(inputs,
                               unnormalized_widths,
                               unnormalized_heights,
@@ -102,6 +186,39 @@ def rational_quadratic_spline(inputs,
                               min_bin_width=DEFAULT_MIN_BIN_WIDTH,
                               min_bin_height=DEFAULT_MIN_BIN_HEIGHT,
                               min_derivative=DEFAULT_MIN_DERIVATIVE):
+    """Core rational quadratic spline transform implementation.
+    
+    Implements a piecewise rational quadratic function that is monotonically
+    increasing and differentiable. The spline is parameterized by bin widths,
+    heights, and derivatives at knot points.
+    
+    The forward transform maps inputs from [left, right] to [bottom, top].
+    The inverse transform maps from [bottom, top] back to [left, right].
+    
+    Args:
+        inputs (torch.Tensor): Input tensor (must be within [left, right] for forward
+            or [bottom, top] for inverse).
+        unnormalized_widths (torch.Tensor): Unnormalized bin widths, shape [..., num_bins].
+        unnormalized_heights (torch.Tensor): Unnormalized bin heights, shape [..., num_bins].
+        unnormalized_derivatives (torch.Tensor): Unnormalized derivatives, shape [..., num_bins+1].
+        inverse (bool, optional): Compute inverse transform. Defaults to False.
+        left (float, optional): Left boundary of input domain. Defaults to 0.
+        right (float, optional): Right boundary of input domain. Defaults to 1.
+        bottom (float, optional): Bottom boundary of output domain. Defaults to 0.
+        top (float, optional): Top boundary of output domain. Defaults to 1.
+        min_bin_width (float, optional): Minimum bin width for stability. Defaults to 1e-3.
+        min_bin_height (float, optional): Minimum bin height for stability. Defaults to 1e-3.
+        min_derivative (float, optional): Minimum derivative for stability. Defaults to 1e-3.
+        
+    Returns:
+        tuple: (outputs, logabsdet)
+            - outputs: Transformed tensor with same shape as inputs
+            - logabsdet: Log absolute Jacobian determinant (negated for inverse)
+            
+    Raises:
+        ValueError: If inputs are outside the valid domain or if bin constraints
+            cannot be satisfied with the given number of bins.
+    """
     if torch.min(inputs) < left or torch.max(inputs) > right:
         raise ValueError('Input to a transform is not within its domain')
 
