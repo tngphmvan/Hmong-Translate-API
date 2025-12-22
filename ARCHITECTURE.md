@@ -6,7 +6,7 @@ The Hmong-Translate-API is a cloud-based translation service designed to provide
 
 ## High-Level Architecture
 
-The system consists of three main tiers:
+The system consists of four main tiers:
 
 1. **Client Layer**: Web applications, mobile apps, and third-party services
 2. **API Gateway Layer**: Request routing, authentication, and rate limiting
