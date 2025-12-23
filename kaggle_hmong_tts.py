@@ -185,7 +185,10 @@ class KaggleHmongTTS:
         print(f"Total entries:          {total}")
         print(f"Successfully processed: {success}")
         print(f"Failed:                 {failed}")
-        print(f"Success rate:           {success/total*100:.1f}%")
+        if total > 0:
+            print(f"Success rate:           {success/total*100:.1f}%")
+        else:
+            print(f"Success rate:           N/A (no entries)")
         print(f"Output directory:       {self.output_dir}")
         print("="*70)
         
