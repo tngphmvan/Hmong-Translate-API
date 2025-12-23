@@ -1,3 +1,11 @@
+"""
+Audio preprocessing utilities for spectrogram and mel-spectrogram computation.
+
+This module provides PyTorch-based implementations of STFT, linear spectrogram,
+and mel-spectrogram extraction with dynamic range compression. It includes
+caching of Hann windows and mel filter banks for efficiency, and is designed
+for speech/audio models such as TTS and STT pipelines.
+"""
 import math
 import os
 import random

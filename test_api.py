@@ -1,6 +1,18 @@
 """
-Script test API dịch Mông - Việt
+Script Test Hmong–Vietnamese Translation API
+--------------------------------------------
+Script này dùng để kiểm tra nhanh các endpoint của Hmong–Vietnamese Translation API.
+
+Chức năng chính:
+- Kiểm tra trạng thái hoạt động của API (health check)
+- Lấy thông tin tổng quan về API và các mô hình đang sử dụng
+- Test dịch giọng nói tiếng Mông → tiếng Việt
+- Test dịch giọng nói tiếng Việt → tiếng Mông (kèm audio đầu ra)
+
+Script gửi request trực tiếp tới API bằng HTTP và in kết quả ra console,
+phù hợp cho debug và kiểm thử sau khi deploy backend.
 """
+
 import requests
 import sys
 import os

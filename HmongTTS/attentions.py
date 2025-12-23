@@ -1,3 +1,15 @@
+"""
+Transformer-based encoder–decoder modules implemented in PyTorch.
+
+This file defines core building blocks including:
+- Encoder and Decoder stacks with multi-head self-attention and feed-forward networks
+- Multi-head attention with optional relative positional encoding and proximal bias
+- Convolutional feed-forward networks (FFN) with masking and optional causal padding
+
+The implementation is designed for sequence-to-sequence models (e.g., TTS/STT),
+supports variable-length sequences via masks, and follows a Transformer-style
+architecture optimized for speech-related tasks.
+"""
 import copy
 import math
 import numpy as np

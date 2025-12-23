@@ -1,7 +1,18 @@
 """
-Hmong-Vietnamese Translation API
-API dịch thuật giữa tiếng Mông và tiếng Việt
+Hmong–Vietnamese Translation API
+--------------------------------
+API dịch song ngữ giữa tiếng Mông và tiếng Việt, hỗ trợ cả văn bản và giọng nói.
+
+Hệ thống tích hợp:
+- ASR tiếng Mông → text bằng Whisper (fine-tuned)
+- ASR tiếng Việt → text bằng Zipformer (sherpa-onnx)
+- Dịch máy hai chiều Mông ↔ Việt thông qua Groq LLM
+- TTS tiếng Mông → audio bằng mô hình VITS
+
+API được xây dựng bằng FastAPI, hỗ trợ upload audio, xử lý bất đồng bộ
+và trả kết quả dạng JSON hoặc audio (base64).
 """
+
 from groq import Groq
 import HmongTTS.commons as commons
 import HmongTTS.utils as utils
