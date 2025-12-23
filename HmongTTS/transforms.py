@@ -307,4 +307,4 @@ def rational_quadratic_spline(inputs,
                                                      + input_derivatives * (1 - theta).pow(2))
         logabsdet = torch.log(derivative_numerator) - 2 * torch.log(denominator)
 
-        return outputs, logabsdet
+        return outputs, logabsdet 

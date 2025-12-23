@@ -9,7 +9,7 @@ try:
 except:
     device = torch.device('cpu')
 from torch import nn
-from torch.nn import functional as F
+from torch.nn import functional as F 
 
 from . import commons
 from . import modules

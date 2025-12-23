@@ -60,10 +60,10 @@ def dynamic_range_decompression_torch(x, C=1):
 
 def spectral_normalize_torch(magnitudes):
     """Apply spectral normalization (log compression) to magnitude spectrogram.
-    
+
     Args:
         magnitudes (torch.Tensor): Input magnitude spectrogram.
-        
+
     Returns:
         torch.Tensor: Log-compressed spectrogram.
     """
@@ -73,10 +73,10 @@ def spectral_normalize_torch(magnitudes):
 
 def spectral_de_normalize_torch(magnitudes):
     """Inverse spectral normalization (exponential) for magnitude spectrogram.
-    
+
     Args:
         magnitudes (torch.Tensor): Log-compressed spectrogram.
-        
+
     Returns:
         torch.Tensor: Linear magnitude spectrogram.
     """
@@ -90,10 +90,10 @@ hann_window = {}
 
 def spectrogram_torch(y, n_fft, sampling_rate, hop_size, win_size, center=False):
     """Compute magnitude spectrogram from waveform using STFT.
-    
+
     Uses PyTorch's STFT implementation with a Hann window. Windows are cached
     for efficiency across multiple calls with the same parameters.
-    
+
     Args:
         y (torch.Tensor): Input waveform tensor of shape [batch, time].
         n_fft (int): FFT size.
@@ -101,7 +101,7 @@ def spectrogram_torch(y, n_fft, sampling_rate, hop_size, win_size, center=False)
         hop_size (int): Hop length between STFT frames.
         win_size (int): Window size for STFT.
         center (bool, optional): Whether to center the signal. Defaults to False.
-        
+
     Returns:
         torch.Tensor: Magnitude spectrogram of shape [batch, n_fft//2+1, frames].
     """
@@ -114,9 +114,11 @@ def spectrogram_torch(y, n_fft, sampling_rate, hop_size, win_size, center=False)
     dtype_device = str(y.dtype) + '_' + str(y.device)
     wnsize_dtype_device = str(win_size) + '_' + dtype_device
     if wnsize_dtype_device not in hann_window:
-        hann_window[wnsize_dtype_device] = torch.hann_window(win_size).to(dtype=y.dtype, device=y.device)
+        hann_window[wnsize_dtype_device] = torch.hann_window(
+            win_size).to(dtype=y.dtype, device=y.device)
 
-    y = torch.nn.functional.pad(y.unsqueeze(1), (int((n_fft-hop_size)/2), int((n_fft-hop_size)/2)), mode='reflect')
+    y = torch.nn.functional.pad(y.unsqueeze(
+        1), (int((n_fft-hop_size)/2), int((n_fft-hop_size)/2)), mode='reflect')
     y = y.squeeze(1)
 
     spec = torch.stft(y, n_fft, return_complex=False, hop_length=hop_size, win_length=win_size, window=hann_window[wnsize_dtype_device],
@@ -128,10 +130,10 @@ def spectrogram_torch(y, n_fft, sampling_rate, hop_size, win_size, center=False)
 
 def spec_to_mel_torch(spec, n_fft, num_mels, sampling_rate, fmin, fmax):
     """Convert linear spectrogram to mel-spectrogram.
-    
+
     Applies mel filter bank to linear spectrogram and performs spectral normalization.
     Mel filter banks are cached for efficiency.
-    
+
     Args:
         spec (torch.Tensor): Linear spectrogram of shape [batch, n_fft//2+1, frames].
         n_fft (int): FFT size used to compute the spectrogram.
@@ -139,7 +141,7 @@ def spec_to_mel_torch(spec, n_fft, num_mels, sampling_rate, fmin, fmax):
         sampling_rate (int): Audio sampling rate.
         fmin (float): Minimum frequency for mel filter bank.
         fmax (float): Maximum frequency for mel filter bank.
-        
+
     Returns:
         torch.Tensor: Mel-spectrogram of shape [batch, num_mels, frames].
     """
@@ -148,7 +150,8 @@ def spec_to_mel_torch(spec, n_fft, num_mels, sampling_rate, fmin, fmax):
     fmax_dtype_device = str(fmax) + '_' + dtype_device
     if fmax_dtype_device not in mel_basis:
         mel = librosa_mel_fn(sampling_rate, n_fft, num_mels, fmin, fmax)
-        mel_basis[fmax_dtype_device] = torch.from_numpy(mel).to(dtype=spec.dtype, device=spec.device)
+        mel_basis[fmax_dtype_device] = torch.from_numpy(
+            mel).to(dtype=spec.dtype, device=spec.device)
     spec = torch.matmul(mel_basis[fmax_dtype_device], spec)
     spec = spectral_normalize_torch(spec)
     return spec
@@ -156,10 +159,10 @@ def spec_to_mel_torch(spec, n_fft, num_mels, sampling_rate, fmin, fmax):
 
 def mel_spectrogram_torch(y, n_fft, num_mels, sampling_rate, hop_size, win_size, fmin, fmax, center=False):
     """Compute mel-spectrogram directly from waveform.
-    
+
     Combines STFT computation and mel filter bank application into a single
     optimized function. Caches Hann windows and mel filter banks for efficiency.
-    
+
     Args:
         y (torch.Tensor): Input waveform tensor of shape [batch, time].
         n_fft (int): FFT size.
@@ -170,7 +173,7 @@ def mel_spectrogram_torch(y, n_fft, num_mels, sampling_rate, hop_size, win_size,
         fmin (float): Minimum frequency for mel filter bank.
         fmax (float): Maximum frequency for mel filter bank.
         center (bool, optional): Whether to center the signal. Defaults to False.
-        
+
     Returns:
         torch.Tensor: Mel-spectrogram of shape [batch, num_mels, frames].
     """
@@ -185,11 +188,14 @@ def mel_spectrogram_torch(y, n_fft, num_mels, sampling_rate, hop_size, win_size,
     wnsize_dtype_device = str(win_size) + '_' + dtype_device
     if fmax_dtype_device not in mel_basis:
         mel = librosa_mel_fn(sampling_rate, n_fft, num_mels, fmin, fmax)
-        mel_basis[fmax_dtype_device] = torch.from_numpy(mel).to(dtype=y.dtype, device=y.device)
+        mel_basis[fmax_dtype_device] = torch.from_numpy(
+            mel).to(dtype=y.dtype, device=y.device)
     if wnsize_dtype_device not in hann_window:
-        hann_window[wnsize_dtype_device] = torch.hann_window(win_size).to(dtype=y.dtype, device=y.device)
+        hann_window[wnsize_dtype_device] = torch.hann_window(
+            win_size).to(dtype=y.dtype, device=y.device)
 
-    y = torch.nn.functional.pad(y.unsqueeze(1), (int((n_fft-hop_size)/2), int((n_fft-hop_size)/2)), mode='reflect')
+    y = torch.nn.functional.pad(y.unsqueeze(
+        1), (int((n_fft-hop_size)/2), int((n_fft-hop_size)/2)), mode='reflect')
     y = y.squeeze(1)
 
     spec = torch.stft(y, n_fft, return_complex=False, hop_length=hop_size, win_length=win_size, window=hann_window[wnsize_dtype_device],

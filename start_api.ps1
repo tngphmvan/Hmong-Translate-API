@@ -1,23 +1,23 @@
-# Script khởi động nhanh API
-# Sử dụng: .\start_api.ps1
+# Quick start script for the API
+# Usage: .\start_api.ps1
 
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  Hmong-Vietnamese Translation API" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Kiểm tra virtual environment
+# Check virtual environment
 if (-not (Test-Path "venv\Scripts\Activate.ps1")) {
     Write-Host "⚠️  Virtual environment chưa được tạo!" -ForegroundColor Yellow
     Write-Host "Đang tạo virtual environment..." -ForegroundColor Yellow
     python -m venv venv
 }
 
-# Kích hoạt virtual environment
+# Activate virtual environment
 Write-Host "🔧 Kích hoạt virtual environment..." -ForegroundColor Green
 & ".\venv\Scripts\Activate.ps1"
 
-# Kiểm tra dependencies
+# Check dependencies
 Write-Host "📦 Kiểm tra dependencies..." -ForegroundColor Green
 $requirementsInstalled = $true
 
@@ -36,7 +36,7 @@ if (-not $requirementsInstalled) {
     pip install -r requirements.txt
 }
 
-# Kiểm tra monotonic_align đã build chưa
+# Check whether monotonic_align has been built
 $monotonicBuildPath = "HmongTTS\monotonic_align\build"
 if (-not (Test-Path $monotonicBuildPath)) {
     Write-Host "🔨 Build monotonic_align..." -ForegroundColor Green
@@ -45,7 +45,7 @@ if (-not (Test-Path $monotonicBuildPath)) {
     Pop-Location
 }
 
-# Khởi động API
+# Start the API
 Write-Host ""
 Write-Host "🚀 Khởi động API server..." -ForegroundColor Green
 Write-Host "   URL: http://localhost:8000" -ForegroundColor Cyan
