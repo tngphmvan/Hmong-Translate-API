@@ -1,0 +1,253 @@
+"""
+Dữ liệu mẫu về chương trình đào tạo và khóa học tại trường đại học.
+
+Dữ liệu này mô phỏng cơ sở dữ liệu thực tế của Bộ Giáo dục,
+được sử dụng để kiểm thử và minh họa hệ thống tư vấn học tập.
+"""
+
+from .data_models import Course, Program
+
+# ==================== DANH SÁCH KHÓA HỌC ====================
+COURSES: dict[str, Course] = {
+    # --- Toán cơ sở ---
+    "MATH101": Course(
+        code="MATH101",
+        name="Giải tích 1",
+        credits=3,
+        description="Giới hạn, đạo hàm, tích phân đơn biến.",
+        prerequisites=[],
+        semester_offered=["Fall", "Spring"],
+        is_required=True,
+        category="math",
+        weight=2.0,
+    ),
+    "MATH102": Course(
+        code="MATH102",
+        name="Giải tích 2",
+        credits=3,
+        description="Tích phân bội, chuỗi số và hàm nhiều biến.",
+        prerequisites=["MATH101"],
+        semester_offered=["Fall", "Spring"],
+        is_required=True,
+        category="math",
+        weight=1.8,
+    ),
+    "MATH201": Course(
+        code="MATH201",
+        name="Đại số tuyến tính",
+        credits=3,
+        description="Ma trận, hệ phương trình tuyến tính, không gian vectơ.",
+        prerequisites=["MATH101"],
+        semester_offered=["Fall", "Spring"],
+        is_required=True,
+        category="math",
+        weight=1.9,
+    ),
+    "MATH301": Course(
+        code="MATH301",
+        name="Xác suất & Thống kê",
+        credits=3,
+        description="Xác suất, phân phối, kiểm định giả thuyết.",
+        prerequisites=["MATH102"],
+        semester_offered=["Fall", "Spring"],
+        is_required=True,
+        category="math",
+        weight=1.7,
+    ),
+    # --- Khoa học máy tính cơ bản ---
+    "CS101": Course(
+        code="CS101",
+        name="Nhập môn lập trình",
+        credits=3,
+        description="Lập trình cơ bản với Python: biến, vòng lặp, hàm.",
+        prerequisites=[],
+        semester_offered=["Fall", "Spring", "Summer"],
+        is_required=True,
+        category="core",
+        weight=2.0,
+    ),
+    "CS102": Course(
+        code="CS102",
+        name="Cấu trúc dữ liệu & Giải thuật",
+        credits=3,
+        description="Mảng, danh sách liên kết, cây, đồ thị, sắp xếp, tìm kiếm.",
+        prerequisites=["CS101", "MATH201"],
+        semester_offered=["Fall", "Spring"],
+        is_required=True,
+        category="core",
+        weight=2.0,
+    ),
+    "CS201": Course(
+        code="CS201",
+        name="Lập trình hướng đối tượng",
+        credits=3,
+        description="OOP với Java/C++: class, kế thừa, đa hình.",
+        prerequisites=["CS101"],
+        semester_offered=["Fall", "Spring"],
+        is_required=True,
+        category="core",
+        weight=1.8,
+    ),
+    "CS301": Course(
+        code="CS301",
+        name="Hệ điều hành",
+        credits=3,
+        description="Quản lý tiến trình, bộ nhớ, hệ thống file.",
+        prerequisites=["CS102"],
+        semester_offered=["Fall", "Spring"],
+        is_required=True,
+        category="core",
+        weight=1.6,
+    ),
+    "CS302": Course(
+        code="CS302",
+        name="Mạng máy tính",
+        credits=3,
+        description="Giao thức TCP/IP, kiến trúc mạng, bảo mật cơ bản.",
+        prerequisites=["CS102"],
+        semester_offered=["Fall", "Spring"],
+        is_required=True,
+        category="core",
+        weight=1.5,
+    ),
+    "CS401": Course(
+        code="CS401",
+        name="Cơ sở dữ liệu",
+        credits=3,
+        description="Mô hình quan hệ, SQL, thiết kế CSDL.",
+        prerequisites=["CS102"],
+        semester_offered=["Fall", "Spring"],
+        is_required=True,
+        category="core",
+        weight=1.8,
+    ),
+    # --- Trí tuệ nhân tạo ---
+    "AI301": Course(
+        code="AI301",
+        name="Nhập môn Trí tuệ nhân tạo",
+        credits=3,
+        description="Tìm kiếm, biểu diễn tri thức, học máy cơ bản.",
+        prerequisites=["CS102", "MATH301"],
+        semester_offered=["Fall", "Spring"],
+        is_required=False,
+        category="ai",
+        weight=1.8,
+    ),
+    "AI302": Course(
+        code="AI302",
+        name="Học máy",
+        credits=3,
+        description="Supervised, unsupervised learning; neural networks.",
+        prerequisites=["AI301", "MATH301"],
+        semester_offered=["Fall", "Spring"],
+        is_required=False,
+        category="ai",
+        weight=1.9,
+    ),
+    "AI401": Course(
+        code="AI401",
+        name="Học sâu (Deep Learning)",
+        credits=3,
+        description="CNN, RNN, Transformer, ứng dụng thực tế.",
+        prerequisites=["AI302"],
+        semester_offered=["Fall"],
+        is_required=False,
+        category="ai",
+        weight=1.7,
+    ),
+    "AI402": Course(
+        code="AI402",
+        name="Xử lý ngôn ngữ tự nhiên",
+        credits=3,
+        description="Tokenization, embedding, mô hình ngôn ngữ, LLM.",
+        prerequisites=["AI302"],
+        semester_offered=["Spring"],
+        is_required=False,
+        category="ai",
+        weight=1.6,
+    ),
+    # --- Kỹ thuật phần mềm ---
+    "SE301": Course(
+        code="SE301",
+        name="Kỹ thuật phần mềm",
+        credits=3,
+        description="Quy trình phát triển, UML, kiểm thử phần mềm.",
+        prerequisites=["CS201"],
+        semester_offered=["Fall", "Spring"],
+        is_required=True,
+        category="software",
+        weight=1.7,
+    ),
+    "SE401": Course(
+        code="SE401",
+        name="Phát triển ứng dụng Web",
+        credits=3,
+        description="HTML, CSS, JavaScript, React, Node.js, REST API.",
+        prerequisites=["CS201", "CS401"],
+        semester_offered=["Fall", "Spring"],
+        is_required=False,
+        category="software",
+        weight=1.5,
+    ),
+    # --- Đồ án ---
+    "CAPSTONE": Course(
+        code="CAPSTONE",
+        name="Đồ án tốt nghiệp",
+        credits=6,
+        description="Dự án thực tế cuối khóa theo nhóm.",
+        prerequisites=["SE301", "CS401"],
+        semester_offered=["Fall", "Spring"],
+        is_required=True,
+        category="capstone",
+        weight=2.5,
+    ),
+}
+
+# ==================== DANH SÁCH CHƯƠNG TRÌNH ====================
+PROGRAMS: dict[str, Program] = {
+    "CSAI": Program(
+        program_id="CSAI",
+        name="Khoa học máy tính - Chuyên ngành Trí tuệ nhân tạo",
+        faculty="Khoa Công nghệ thông tin",
+        description=(
+            "Chương trình đào tạo kỹ sư CNTT chuyên sâu về AI, học máy "
+            "và xử lý dữ liệu lớn."
+        ),
+        total_credits=130,
+        required_courses=[
+            "MATH101", "MATH102", "MATH201", "MATH301",
+            "CS101", "CS102", "CS201", "CS301", "CS302", "CS401",
+            "SE301", "CAPSTONE",
+        ],
+        elective_courses=["AI301", "AI302", "AI401", "AI402", "SE401"],
+        elective_credits_required=12,
+        admission_gpa_min=7.0,
+        admission_requirements=[
+            "Điểm trung bình THPT >= 7.0",
+            "Điểm Toán >= 7.0",
+            "Điểm Lý hoặc Hóa >= 6.5",
+        ],
+    ),
+    "SE": Program(
+        program_id="SE",
+        name="Kỹ thuật phần mềm",
+        faculty="Khoa Công nghệ thông tin",
+        description=(
+            "Chương trình đào tạo kỹ sư phần mềm với kiến thức toàn diện "
+            "về phát triển, kiểm thử và triển khai hệ thống."
+        ),
+        total_credits=125,
+        required_courses=[
+            "MATH101", "MATH201",
+            "CS101", "CS102", "CS201", "CS301", "CS401",
+            "SE301", "SE401", "CAPSTONE",
+        ],
+        elective_courses=["MATH102", "MATH301", "CS302", "AI301", "AI302"],
+        elective_credits_required=9,
+        admission_gpa_min=6.5,
+        admission_requirements=[
+            "Điểm trung bình THPT >= 6.5",
+            "Điểm Toán >= 6.5",
+        ],
+    ),
+}
